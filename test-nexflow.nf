@@ -5,11 +5,15 @@
  */
 process BuildDb {
 
-    publishDir 'results', mode: 'copy'
+    publishDir 'database', mode: 'copy'
 
     input:
         val database_file
 
+    output:
+     
+     path "my_local_db*"
+    
     script:
     """
     makeblastdb -in $database_file -dbtype nucl -out my_local_db
@@ -20,14 +24,14 @@ process RunBLAST{
       publishDir 'results', mode: 'copy'
 
     input:
-        path input_file
+        path query_file
 
     output:
-        path "UPPER-${input_file}-output.txt"
+        path "results.txt"
 
     script:
     """
-    cat $input_file | tr '[a-z]' '[A-Z]' > UPPER-${input_file}-output.txt
+    blastn -query ${query_file} -db database/my_local_db -out results.txt -outfmt 6
     """
 }
 
@@ -35,13 +39,19 @@ process RunBLAST{
  * Pipeline parameters
  */
 params.database_file = 'input/toydb.fa'
+params.query = 'input/misterious_sequences.fa'
 
 workflow {
 
     // create a channel for inputs from a CSV file
     database_file = Channel.fromPath(params.database_file)
+    query = Channel.fromPath(params.query)
  
 
-    // emit a greeting
-    BuildDb(database_file)
+    // Build de db
+    BuildDb(database_file) // no output needed
+
+    // Run Blast on fq files
+    RunBLAST(query)
+
 }
