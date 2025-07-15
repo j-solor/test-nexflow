@@ -12,8 +12,8 @@ process BuildDb {
 
     output:
      
-     path "my_local_db*"
-    
+    path "my_local_db.*"  // Outputs all DB-related files (nsq, nin, nhr, etc.)
+
     script:
     """
     makeblastdb -in $database_file -dbtype nucl -out my_local_db
@@ -25,13 +25,14 @@ process RunBLAST{
 
     input:
         path query_file
+        path db_files // no need to call them latterl just make them available
 
     output:
         path "results.txt"
 
     script:
     """
-    blastn -query ${query_file} -db database/my_local_db -out results.txt -outfmt 6
+    blastn -query ${query_file} -db my_local_db -out results.txt -outfmt 6
     """
 }
 
@@ -43,15 +44,11 @@ params.query = 'input/misterious_sequences.fa'
 
 workflow {
 
-    // create a channel for inputs from a CSV file
     database_file = Channel.fromPath(params.database_file)
     query = Channel.fromPath(params.query)
- 
 
-    // Build de db
-    BuildDb(database_file) // no output needed
+    // Connect processes
+    db_files = BuildDb(database_file) // db_files will include .nin, .nsq, .nhr
 
-    // Run Blast on fq files
-    RunBLAST(query)
-
+    RunBLAST(query, db_files)
 }
