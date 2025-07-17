@@ -47,7 +47,9 @@ process GetInfo{
 
     script:
     """
-    echo $blast_results > obtined3UTRs.txt   
+    echo $blast_results > obtined3UTRs.txt 
+    #! Now just need to turn this into a R script with my Biomart code
+    #! Check speed, maybe better keep all outputs together and run BiomaRt once
     """
 
 }
