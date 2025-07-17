@@ -40,14 +40,14 @@ process GetInfo{
     publishDir 'results', mode: 'copy'
 
     input:
-        path blast_results
+        val  blast_results
 
     output:
         path "obtined3UTRs.txt"
 
     script:
     """
-    cat $blast_results > obtined3UTRs.txt   
+    echo $blast_results > obtined3UTRs.txt   
     """
 
 }
@@ -66,6 +66,13 @@ workflow {
     // Connect processes
     BuildDb(database_file) // db_files will include .nin, .nsq, .nhr
     RunBLAST(query, BuildDb.out)
-    GetInfo(RunBLAST.out)
+    ensemblIDs = RunBLAST.out
+                        .view {it -> "1st OUTPUT: $it" }
+                        .splitCsv(header: false, sep:'\t')
+                        .map{row -> "${row[1]}"}
+                        .view {it -> "2nd OUTPUT: $it" }
+
+              
+    GetInfo(ensemblIDs)
     //! add a message with some info
 }
