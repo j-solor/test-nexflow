@@ -64,9 +64,8 @@ workflow {
     query = Channel.fromPath(params.query)
 
     // Connect processes
-    db_files = BuildDb(database_file) // db_files will include .nin, .nsq, .nhr
-
-    blast_results = RunBLAST(query, db_files)
-
-    GetInfo(blast_results)
+    BuildDb(database_file) // db_files will include .nin, .nsq, .nhr
+    RunBLAST(query, BuildDb.out)
+    GetInfo(RunBLAST.out)
+    //! add a message with some info
 }
