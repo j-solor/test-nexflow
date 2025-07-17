@@ -36,6 +36,22 @@ process RunBLAST{
     """
 }
 
+process GetInfo{
+    publishDir 'results', mode: 'copy'
+
+    input:
+        path blast_results
+
+    output:
+        path "obtined3UTRs.txt"
+
+    script:
+    """
+    cat $blast_results > obtined3UTRs.txt   
+    """
+
+}
+
 /*
  * Pipeline parameters
  */
@@ -50,5 +66,7 @@ workflow {
     // Connect processes
     db_files = BuildDb(database_file) // db_files will include .nin, .nsq, .nhr
 
-    RunBLAST(query, db_files)
+    blast_results = RunBLAST(query, db_files)
+
+    GetInfo(blast_results)
 }
