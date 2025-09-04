@@ -47,7 +47,29 @@ process GetInfo{
 
     script:
     """
-    echo $blast_results > obtined3UTRs.txt 
+    #!/usr/bin/env Rscript
+    library(tidyverse)
+    library(biomaRt)
+
+    print("hola")
+    #load Ensembl
+    ensembl95 <- useEnsembl(
+    biomart = "genes",
+    dataset = "hsapiens_gene_ensembl"
+    ) 
+
+    annot_ensembl95 <- getBM(attributes = c(
+    "ensembl_gene_id",
+    "external_gene_name"),
+    mart = ensembl95)
+
+    translate <- deframe(annot_ensembl95[c("ensembl_gene_id", "external_gene_name")])
+
+    fileConn<-file("obtined3UTRs.txt")
+    writeLines(translate[c('$blast_results')], fileConn)
+    close(fileConn)
+
+
     #! Now just need to turn this into a R script with my Biomart code
     #! Check speed, maybe better keep all outputs together and run BiomaRt once
     """
@@ -78,3 +100,4 @@ workflow {
     GetInfo(ensemblIDs)
     //! add a message with some info
 }
+    
