@@ -51,7 +51,6 @@ process GetInfo{
     library(tidyverse)
     library(biomaRt)
 
-    print("hola")
     #load Ensembl
     ensembl95 <- useEnsembl(
     biomart = "genes",
@@ -65,8 +64,12 @@ process GetInfo{
 
     translate <- deframe(annot_ensembl95[c("ensembl_gene_id", "external_gene_name")])
 
+    # Parse the input so is readed as a char vector by R
+    blast_resultsR  <- c(${blast_results.collect{"\"${it}\""}.join(", ")})
+
+    # Write results to file
     fileConn<-file("obtined3UTRs.txt")
-    writeLines(translate[c('$blast_results')], fileConn)
+    writeLines(translate[blast_resultsR], fileConn)
     close(fileConn)
 
 
@@ -95,6 +98,8 @@ workflow {
                         .splitCsv(header: false, sep:'\t')
                         .map{row -> "${row[1]}"}
                         .view {it -> "2nd OUTPUT: $it" }
+                        .collect()
+                        .view()
 
               
     GetInfo(ensemblIDs)
