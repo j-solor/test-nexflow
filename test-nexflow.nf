@@ -43,7 +43,7 @@ process GetInfo{
         val  blast_results
 
     output:
-        path "obtined3UTRs.txt"
+        path "*_obtined3UTRs.tsv"
 
     script:
     """
@@ -57,21 +57,38 @@ process GetInfo{
     dataset = "hsapiens_gene_ensembl"
     ) 
 
-    annot_ensembl95 <- getBM(attributes = c(
-    "ensembl_gene_id",
-    "external_gene_name"),
-    mart = ensembl95)
+    #load Ensembl
+    ensembl95 <- useEnsembl( # listAttributes(ensembl95)
+    biomart = "genes",
+     dataset = "hsapiens_gene_ensembl") 
 
-    translate <- deframe(annot_ensembl95[c("ensembl_gene_id", "external_gene_name")])
+    chosen_atr <- c(
+     "ensembl_gene_id",
+    "ensembl_transcript_id",
+    "external_gene_name",
+     "chromosome_name",
+     "3_utr_start",
+     "3_utr_end",
+     "3utr")
 
-    # Parse the input so is readed as a char vector by R
-    blast_resultsR  <- c(${blast_results.collect{"\"${it}\""}.join(", ")})
+    query_ensemblIDs <- c(${blast_results.collect{"\"${it}\""}.join(", ")})
+
+    annot_ensembl95 <- getBM(filters = c("ensembl_gene_id"),
+                         values = query_ensemblIDs,
+                         attributes = chosen_atr,
+                         mart = ensembl95) %>%
+    group_by(ensembl_gene_id)
+
+
+    tibble_list <- annot_ensembl95 %>%
+    group_split(ensembl_gene_id) %>% 
+    set_names(group_keys(annot_ensembl95, ensembl_gene_id) %>% deframe())
+
 
     # Write results to file
-    fileConn<-file("obtined3UTRs.txt")
-    writeLines(translate[blast_resultsR], fileConn)
-    close(fileConn)
-
+    for(key in group_keys(annot_ensembl95, ensembl_gene_id) %>% deframe()){
+    write_tsv(x = tibble_list[[key]], file = paste0(key,"_obtined3UTRs.tsv"))
+    }
 
     #! Now just need to turn this into a R script with my Biomart code
     #! Check speed, maybe better keep all outputs together and run BiomaRt once
