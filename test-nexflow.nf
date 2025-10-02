@@ -43,7 +43,7 @@ process GetInfo{
         val  blast_results
 
     output:
-        path "*_obtined3UTRs.tsv"
+        path "*_obtained3UTRs.tsv"
 
     script:
     """
@@ -77,6 +77,7 @@ process GetInfo{
                          values = query_ensemblIDs,
                          attributes = chosen_atr,
                          mart = ensembl95) %>%
+    dplyr::relocate(all_of(chosen_atr)) %>% 
     group_by(ensembl_gene_id)
 
 
@@ -87,10 +88,9 @@ process GetInfo{
 
     # Write results to file
     for(key in group_keys(annot_ensembl95, ensembl_gene_id) %>% deframe()){
-    write_tsv(x = tibble_list[[key]], file = paste0(key,"_obtined3UTRs.tsv"))
+    write_tsv(x = tibble_list[[key]], file = paste0(key,"_obtained3UTRs.tsv"))
     }
 
-    #! Now just need to turn this into a R script with my Biomart code
     #! Check speed, maybe better keep all outputs together and run BiomaRt once
     """
 
@@ -111,15 +111,10 @@ workflow {
     BuildDb(database_file) // db_files will include .nin, .nsq, .nhr
     RunBLAST(query, BuildDb.out)
     ensemblIDs = RunBLAST.out
-                        .view {it -> "1st OUTPUT: $it" }
                         .splitCsv(header: false, sep:'\t')
                         .map{row -> "${row[1]}"}
-                        .view {it -> "2nd OUTPUT: $it" }
                         .collect()
-                        .view()
-
               
     GetInfo(ensemblIDs)
-    //! add a message with some info
 }
     
